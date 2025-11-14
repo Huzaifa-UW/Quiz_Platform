@@ -1,0 +1,24 @@
+# SmartStudy Quiz 🎓  
+
+SmartStudy Quiz is a simple Python-based quiz tool designed to make studying easier and more interactive.  
+Instead of just reading notes, students can practice questions stored in a CSV file and get instant feedback.  
+
+This project reflects my interest in combining programming with education — building tools that solve real problems students face.  
+
+Note: All backen and logics are done by my self. for front end I asked Ai help to assist me to display it.
+
+✨ Features
+- Load quiz questions from a CSV file  
+- Randomly select questions for variety  
+- Show score at the end of the quiz  
+- Easy to expand (you can add new subjects/questions by editing the CSV file)  
+
+
+ 🚀 How to Run
+1. Install **Python 3.11** or later  
+2. Clone this repository (or download as ZIP):  
+   ```bash
+   git clone https://github.com/Huzaifa-UW/SMULF.git
+
+📜 License
+This project is open-source under the [MIT License](LICENSE).
