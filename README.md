@@ -5,7 +5,9 @@ Instead of just reading notes, students can practice questions stored in a CSV f
 
 This project reflects my interest in combining programming with education — building tools that solve real problems students face.  
 
-Note: All backen and logics are done by my self. for front end I asked Ai help to assist me to display it.
+RUN: Run it in VS Code and in the terminal enter this:  streamlit run Quiz_app.py (This will open its complete version and wait after clicking anything its not super fast it takes 1 second, which would not feel much)
+
+Note: All backend and logic is done by myself. For the Front-End, I asked AI for help to assist me in displaying it.
 
 ✨ Features
 - Load quiz questions from a CSV file  
