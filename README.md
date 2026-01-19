@@ -1,5 +1,5 @@
 # SmartStudy Quiz 🎓  
-
+Please click this click to run the app or just copy paste it in URL:   https://medical-quiz-app.streamlit.app/
 SmartStudy Quiz is a simple Python-based quiz tool designed to make studying easier and more interactive.  
 Instead of just reading notes, students can practice questions stored in a CSV file and get instant feedback.  
 
