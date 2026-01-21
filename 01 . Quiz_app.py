@@ -2,11 +2,10 @@ import streamlit as st
 import csv
 import random
 import requests
-import io
-import pandas as pd
+import gzip
 
 # variable to store or hold date 
-# Data will come through different loops here to store it and use it for later maybe in results
+# Data will come thorugh different loops here to store it and use it for later maybe in results
 
 if not all(k in st.session_state for k in ["stage","category_out","my_list","number_of_mcqs","current_index","correct","wrong","wrong_input","locked"]):
     st.session_state.stage = st.session_state.get("stage","choose_subject")
@@ -32,6 +31,37 @@ list_of_subjects = [
 ]
 
 st.title("MCQ Quiz (Medical)")
+
+# Function to load data from compressed file on GitHub
+@st.cache_data
+def load_csv_from_github():
+    """Load compressed CSV data from GitHub"""
+    try:
+        # REPLACE THIS URL with your actual GitHub raw URL
+        # Format: https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/train.csv.gz
+        github_url = "https://github.com/Huzaifa-UW/Quiz_Platform/blob/main/train%20(1).csv.gz"
+        
+        # Download the compressed file
+        response = requests.get(github_url)
+        response.raise_for_status()  # Raise an error for bad status codes
+        
+        # Decompress the gzipped content
+        decompressed_content = gzip.decompress(response.content)
+        
+        # Convert bytes to string and split into lines
+        content = decompressed_content.decode('utf-8')
+        lines = content.splitlines()
+        
+        # Skip header and return data lines
+        return [line.strip() for line in lines[1:] if line.strip()]
+        
+    except Exception as e:
+        st.error(f"Error loading data: {str(e)}")
+        st.info("Make sure:")
+        st.info("1. Your train.csv.gz file is uploaded to GitHub")
+        st.info("2. The GitHub URL in the code is correct")
+        st.info("3. The file is in your repository's main branch")
+        return []
 
 # This is the filter option. It doesnt have mcqs number as its a permanat thing so even if user
 # selects no for filter it will still be needed to be filled
@@ -64,24 +94,23 @@ elif st.session_state.stage == "choose_number":
     if st.button("Start Quiz"):
         st.session_state.number_of_mcqs = num
         
-        try:
-            # Try to load the CSV file
-            # This file needs to be in the same directory as your script
-            # For Streamlit Cloud, you need to upload train.csv to your repository
-            with open("train.csv", encoding="utf-8") as f:
-                next(f)  # Skip header
-                data = [line.strip() for line in f if line.strip()]
-            
+        # Load data from GitHub (compressed file)
+        data = load_csv_from_github()
+        
+        if not data:
+            st.error("Failed to load data. Please check the data source and try again.")
+        else:
             if st.session_state.category_out:
                 st.session_state.my_list = [line for line in data if st.session_state.category_out in line.lower()]
             else:
                 st.session_state.my_list = data
             
+            # Check if we got any questions
             if len(st.session_state.my_list) == 0:
                 if st.session_state.category_out:
                     st.error(f"No questions found for subject: {st.session_state.category_out}. Please go back and choose a different subject.")
                 else:
-                    st.error("No questions found. Please check if train.csv file exists and has data.")
+                    st.error("No questions found in the database.")
             else:
                 if num > len(st.session_state.my_list):
                     st.warning(f"⚠️ Only {len(st.session_state.my_list)} questions available. Adjusting to show all available questions.")
@@ -90,70 +119,55 @@ elif st.session_state.stage == "choose_number":
                 random.shuffle(st.session_state.my_list)
                 st.session_state.stage = "quiz_time"
                 st.rerun()
-                
-        except FileNotFoundError:
-            st.error("❌ 'train.csv' file not found. Please make sure the file exists in the same directory.")
-            st.info("For Streamlit Cloud deployment, upload your train.csv file to your GitHub repository.")
-        except Exception as e:
-            st.error(f"❌ An error occurred: {str(e)}")
 
 elif st.session_state.stage == "quiz_time":
-    # Check if we have any questions to show
-    if len(st.session_state.my_list) == 0:
-        st.error("❌ No questions available. Please restart the quiz.")
-        if st.button("🔄 Restart Quiz"):
-            for key in list(st.session_state.keys()):
-                del st.session_state[key]
-            st.session_state.stage = "choose_subject"
-            st.rerun()
-    else:
-        if (
-            st.session_state.current_index >= st.session_state.number_of_mcqs
-            or st.session_state.current_index >= len(st.session_state.my_list)
-        ):
-            st.session_state.stage = "show_result"
-            st.rerun()
+    if (
+        st.session_state.current_index >= st.session_state.number_of_mcqs
+        or st.session_state.current_index >= len(st.session_state.my_list)
+    ):
+        st.session_state.stage = "show_result"
+        st.rerun()
 
-        row = next(csv.reader([st.session_state.my_list[st.session_state.current_index]]))
+    row = next(csv.reader([st.session_state.my_list[st.session_state.current_index]]))
 
-        while len(row) < 10:
-            row.append('Sorry! Right now we have not added explanation.')
-        id, question, op1, op2, op3, op4, answer, type_, exp, category = row
+    while len(row) < 10:
+        row.append('Sorry! Right now we have not added explanation.')
+    id, question, op1, op2, op3, op4, answer, type_, exp, category = row
 
-        st.subheader(f"Q{st.session_state.current_index+1}: {question}")
+    st.subheader(f"Q{st.session_state.current_index+1}: {question}")
 
-        options = {"A": op1, "B": op2, "C": op3, "D": op4}
+    options = {"A": op1, "B": op2, "C": op3, "D": op4}
 
-        correct_letter = answer.strip().upper() if answer else ""
-        if correct_letter in ["0", "1", "2", "3"]:
-            correct_letter = chr(int(correct_letter) + 65)
+    correct_letter = answer.strip().upper() if answer else ""
+    if correct_letter in ["0", "1", "2", "3"]:
+        correct_letter = chr(int(correct_letter) + 65)
 
-        choice = st.radio(
-            "Pick your answer:",
-            list(options.keys()),
-            format_func=lambda x: f"{x}. {options[x]}",
-            index=None,
-            disabled=st.session_state.locked,
-        )
+    choice = st.radio(
+        "Pick your answer:",
+        list(options.keys()),
+        format_func=lambda x: f"{x}. {options[x]}",
+        index=None,
+        disabled=st.session_state.locked,
+    )
 
-        if not st.session_state.locked and st.button("Submit Answer"):
-            if choice:
-                if choice.upper() == correct_letter:
-                    st.success("✅ Correct!\n\n" + exp)
-                    st.session_state.correct += 1
-                else:
-                    st.error(f"❌ Wrong! The correct answer was {correct_letter}. \n\n{exp}")
-                    st.session_state.wrong += 1
+    if not st.session_state.locked and st.button("Submit Answer"):
+        if choice:
+            if choice.upper() == correct_letter:
+                st.success("✅ Correct!\n\n" + exp)
+                st.session_state.correct += 1
             else:
-                st.warning("⚠️ You didn't select anything!")
-                st.session_state.wrong_input += 1
+                st.error(f"❌ Wrong! The correct answer was {correct_letter}. \n\n{exp}")
+                st.session_state.wrong += 1
+        else:
+            st.warning("⚠️ You didn't select anything!")
+            st.session_state.wrong_input += 1
 
-            st.session_state.locked = True
+        st.session_state.locked = True
 
-        if st.session_state.locked and st.button("Next Question ➡️"):
-            st.session_state.current_index += 1
-            st.session_state.locked = False
-            st.rerun()
+    if st.session_state.locked and st.button("Next Question ➡️"):
+        st.session_state.current_index += 1
+        st.session_state.locked = False
+        st.rerun()
 
 elif st.session_state.stage == "show_result":
     total = st.session_state.correct + st.session_state.wrong + st.session_state.wrong_input
@@ -171,5 +185,3 @@ elif st.session_state.stage == "show_result":
             del st.session_state[key]
         st.session_state.stage = "choose_subject"
         st.rerun()
-
-# this is where it end but other features + some fixes and bugs are being resolved and will be done soon
