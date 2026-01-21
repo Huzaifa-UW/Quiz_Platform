@@ -32,33 +32,6 @@ list_of_subjects = [
 
 st.title("MCQ Quiz (Medical)")
 
-# Function to load data from compressed file on GitHub
-@st.cache_data
-def load_csv_from_github():
-    """Load compressed CSV data from GitHub"""
-    try:
-        # Use the raw GitHub URL for your file
-        github_url = "https://raw.githubusercontent.com/Huzaifa-UW/Quiz_Platform/main/train%20(1).csv.gz"
-        
-        # Download the compressed file
-        response = requests.get(github_url)
-        response.raise_for_status()  # Raise an error for bad status codes
-        
-        # Decompress the gzipped content
-        decompressed_content = gzip.decompress(response.content)
-        
-        # Convert bytes to string and split into lines
-        content = decompressed_content.decode('utf-8')
-        lines = content.splitlines()
-        
-        # Skip header and return data lines
-        return [line.strip() for line in lines[1:] if line.strip()]
-        
-    except Exception as e:
-        st.error(f"Error loading data: {str(e)}")
-        st.info("Please make sure your train (1).csv.gz file is uploaded to GitHub and accessible.")
-        return []
-
 # This is the filter option. It doesnt have mcqs number as its a permanat thing so even if user
 # selects no for filter it will still be needed to be filled
 
@@ -90,31 +63,34 @@ elif st.session_state.stage == "choose_number":
     if st.button("Start Quiz"):
         st.session_state.number_of_mcqs = num
         
-        # Load data from GitHub (compressed file)
-        data = load_csv_from_github()
-        
-        if not data:
-            st.error("Failed to load data. Please check the data source and try again.")
-        else:
-            if st.session_state.category_out:
-                st.session_state.my_list = [line for line in data if st.session_state.category_out in line.lower()]
-            else:
-                st.session_state.my_list = data
+        # Load data from GitHub compressed file
+        try:
+            url = "https://raw.githubusercontent.com/Huzaifa-UW/Quiz_Platform/main/train%20(1).csv.gz"
+            response = requests.get(url)
+            response.raise_for_status()
             
-            # Check if we got any questions
-            if len(st.session_state.my_list) == 0:
-                if st.session_state.category_out:
-                    st.error(f"No questions found for subject: {st.session_state.category_out}. Please go back and choose a different subject.")
-                else:
-                    st.error("No questions found in the database.")
-            else:
-                if num > len(st.session_state.my_list):
-                    st.warning(f"⚠️ Only {len(st.session_state.my_list)} questions available. Adjusting to show all available questions.")
-                    st.session_state.number_of_mcqs = len(st.session_state.my_list)
-                
-                random.shuffle(st.session_state.my_list)
-                st.session_state.stage = "quiz_time"
-                st.rerun()
+            # Decompress the gzipped content
+            decompressed = gzip.decompress(response.content)
+            
+            # Convert to string and split lines
+            content = decompressed.decode('utf-8')
+            lines = content.splitlines()
+            
+            # Skip header and process data
+            data = [line.strip() for line in lines[1:] if line.strip()]
+            
+        except Exception as e:
+            st.error(f"Error loading data: {str(e)}")
+            data = []
+        
+        if st.session_state.category_out:
+            st.session_state.my_list = [line for line in data if st.session_state.category_out in line.lower()]
+        else:
+            st.session_state.my_list = data
+            
+        random.shuffle(st.session_state.my_list)
+        st.session_state.stage = "quiz_time"
+        st.rerun()
 
 elif st.session_state.stage == "quiz_time":
     if (
@@ -125,62 +101,18 @@ elif st.session_state.stage == "quiz_time":
         st.rerun()
 
     row = next(csv.reader([st.session_state.my_list[st.session_state.current_index]]))
-    
-    # DEBUG: Show what we're getting from the CSV
-    st.write(f"DEBUG: Raw row has {len(row)} columns")
-    for i, col in enumerate(row):
-        st.write(f"Column {i}: {col[:50]}...")
-    
-    # Handle the row based on number of columns
-    if len(row) >= 7:
-        # We have at least the basic columns
-        if len(row) >= 10:
-            # We have all 10 columns
-            id, question, op1, op2, op3, op4, answer, type_, exp, category = row[:10]
-        elif len(row) == 9:
-            # Missing category
-            id, question, op1, op2, op3, op4, answer, type_, exp = row[:9]
-            category = "unknown"
-        elif len(row) == 8:
-            # Missing exp and category
-            id, question, op1, op2, op3, op4, answer, type_ = row[:8]
-            exp = 'Sorry! Right now we have not added explanation.'
-            category = "unknown"
-        elif len(row) == 7:
-            # Missing type_, exp, and category
-            id, question, op1, op2, op3, op4, answer = row[:7]
-            type_ = ""
-            exp = 'Sorry! Right now we have not added explanation.'
-            category = "unknown"
-    else:
-        # Not enough columns, something is wrong with the data
-        st.error("Error: CSV row doesn't have enough columns")
-        # Try to extract what we can
-        id = row[0] if len(row) > 0 else ""
-        question = row[1] if len(row) > 1 else "Error: Question missing"
-        op1 = row[2] if len(row) > 2 else "Option 1"
-        op2 = row[3] if len(row) > 3 else "Option 2"
-        op3 = row[4] if len(row) > 4 else "Option 3"
-        op4 = row[5] if len(row) > 5 else "Option 4"
-        answer = row[6] if len(row) > 6 else "A"
-        type_ = ""
-        exp = 'Sorry! Right now we have not added explanation.'
-        category = "unknown"
+
+    while len(row) < 10:
+        row.append('Sorry! Right now we have not added explanation.')
+    id, question, op1, op2, op3, op4, answer, type_, exp, category = row
 
     st.subheader(f"Q{st.session_state.current_index+1}: {question}")
 
     options = {"A": op1, "B": op2, "C": op3, "D": op4}
 
-    # Clean and process the answer
-    answer = answer.strip()
-    correct_letter = answer.upper() if answer else ""
-    
-    # Handle numeric answers (0,1,2,3)
+    correct_letter = answer.strip().upper() if answer else ""
     if correct_letter in ["0", "1", "2", "3"]:
         correct_letter = chr(int(correct_letter) + 65)
-    
-    # DEBUG: Show what answer we got
-    st.write(f"DEBUG: Raw answer: '{answer}', Processed: '{correct_letter}'")
 
     choice = st.radio(
         "Pick your answer:",
