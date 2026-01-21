@@ -2,6 +2,16 @@
 import streamlit as st
 import csv
 import random
+import requests
+import io
+
+@st.cache_data
+def load_csv_from_drive():
+    url = "https://drive.google.com/uc?id=1AsnDikQZdkbn1O03pk6BBRRMGHP0U73S"
+    response = requests.get(url)
+    response.raise_for_status()
+    return response.text.splitlines()
+
 
 # variable to store or hold date 
 # Data will come thorugh different loops here to store it and use it for later maybe in results
@@ -62,9 +72,8 @@ elif st.session_state.stage == "choose_number":
     if st.button("Start Quiz"):
         st.session_state.number_of_mcqs = num
 
-        with open("train.csv", encoding="utf-8") as f:
-            next(f)  
-            data = [line.strip() for line in f if line.strip()]
+        lines = load_csv_from_drive()
+        data = [line.strip() for line in lines[1:] if line.strip()]  # skip header
 
         if st.session_state.category_out:
             st.session_state.my_list = [line for line in data if st.session_state.category_out in line.lower()]
