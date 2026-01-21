@@ -100,55 +100,54 @@ elif st.session_state.stage == "quiz_time":
                 del st.session_state[key]
             st.session_state.stage = "choose_subject"
             st.rerun()
-        return
-    
-    if (
-        st.session_state.current_index >= st.session_state.number_of_mcqs
-        or st.session_state.current_index >= len(st.session_state.my_list)
-    ):
-        st.session_state.stage = "show_result"
-        st.rerun()
+    else:
+        if (
+            st.session_state.current_index >= st.session_state.number_of_mcqs
+            or st.session_state.current_index >= len(st.session_state.my_list)
+        ):
+            st.session_state.stage = "show_result"
+            st.rerun()
 
-    row = next(csv.reader([st.session_state.my_list[st.session_state.current_index]]))
+        row = next(csv.reader([st.session_state.my_list[st.session_state.current_index]]))
 
-    while len(row) < 10:
-        row.append('Sorry! Right now we have not added explanation.')
-    id, question, op1, op2, op3, op4, answer, type_, exp, category = row
+        while len(row) < 10:
+            row.append('Sorry! Right now we have not added explanation.')
+        id, question, op1, op2, op3, op4, answer, type_, exp, category = row
 
-    st.subheader(f"Q{st.session_state.current_index+1}: {question}")
+        st.subheader(f"Q{st.session_state.current_index+1}: {question}")
 
-    options = {"A": op1, "B": op2, "C": op3, "D": op4}
+        options = {"A": op1, "B": op2, "C": op3, "D": op4}
 
-    correct_letter = answer.strip().upper() if answer else ""
-    if correct_letter in ["0", "1", "2", "3"]:
-        correct_letter = chr(int(correct_letter) + 65)
+        correct_letter = answer.strip().upper() if answer else ""
+        if correct_letter in ["0", "1", "2", "3"]:
+            correct_letter = chr(int(correct_letter) + 65)
 
-    choice = st.radio(
-        "Pick your answer:",
-        list(options.keys()),
-        format_func=lambda x: f"{x}. {options[x]}",
-        index=None,
-        disabled=st.session_state.locked,
-    )
+        choice = st.radio(
+            "Pick your answer:",
+            list(options.keys()),
+            format_func=lambda x: f"{x}. {options[x]}",
+            index=None,
+            disabled=st.session_state.locked,
+        )
 
-    if not st.session_state.locked and st.button("Submit Answer"):
-        if choice:
-            if choice.upper() == correct_letter:
-                st.success("✅ Correct!\n\n" + exp)
-                st.session_state.correct += 1
+        if not st.session_state.locked and st.button("Submit Answer"):
+            if choice:
+                if choice.upper() == correct_letter:
+                    st.success("✅ Correct!\n\n" + exp)
+                    st.session_state.correct += 1
+                else:
+                    st.error(f"❌ Wrong! The correct answer was {correct_letter}. \n\n{exp}")
+                    st.session_state.wrong += 1
             else:
-                st.error(f"❌ Wrong! The correct answer was {correct_letter}. \n\n{exp}")
-                st.session_state.wrong += 1
-        else:
-            st.warning("⚠️ You didn't select anything!")
-            st.session_state.wrong_input += 1
+                st.warning("⚠️ You didn't select anything!")
+                st.session_state.wrong_input += 1
 
-        st.session_state.locked = True
+            st.session_state.locked = True
 
-    if st.session_state.locked and st.button("Next Question ➡️"):
-        st.session_state.current_index += 1
-        st.session_state.locked = False
-        st.rerun()
+        if st.session_state.locked and st.button("Next Question ➡️"):
+            st.session_state.current_index += 1
+            st.session_state.locked = False
+            st.rerun()
 
 elif st.session_state.stage == "show_result":
     total = st.session_state.correct + st.session_state.wrong + st.session_state.wrong_input
