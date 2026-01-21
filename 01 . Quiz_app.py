@@ -37,9 +37,8 @@ st.title("MCQ Quiz (Medical)")
 def load_csv_from_github():
     """Load compressed CSV data from GitHub"""
     try:
-        # REPLACE THIS URL with your actual GitHub raw URL
-        # Format: https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/train.csv.gz
-        github_url = "https://github.com/Huzaifa-UW/Quiz_Platform/blob/main/train%20(1).csv.gz"
+        # Use the raw GitHub URL for your file
+        github_url = "https://raw.githubusercontent.com/Huzaifa-UW/Quiz_Platform/main/train%20(1).csv.gz"
         
         # Download the compressed file
         response = requests.get(github_url)
@@ -57,10 +56,7 @@ def load_csv_from_github():
         
     except Exception as e:
         st.error(f"Error loading data: {str(e)}")
-        st.info("Make sure:")
-        st.info("1. Your train.csv.gz file is uploaded to GitHub")
-        st.info("2. The GitHub URL in the code is correct")
-        st.info("3. The file is in your repository's main branch")
+        st.info("Please make sure your train (1).csv.gz file is uploaded to GitHub and accessible.")
         return []
 
 # This is the filter option. It doesnt have mcqs number as its a permanat thing so even if user
