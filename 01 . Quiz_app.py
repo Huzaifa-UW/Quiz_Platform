@@ -1,4 +1,3 @@
-
 import streamlit as st
 import csv
 import random
@@ -73,12 +72,17 @@ elif st.session_state.stage == "choose_number":
         st.session_state.number_of_mcqs = num
 
         lines = load_csv_from_drive()
-        data = [line.strip() for line in lines[1:] if line.strip()]  # skip header
+        reader = csv.reader(lines)
+        next(reader)
+        rows = [row for row in reader if len(row) >= 10]
 
         if st.session_state.category_out:
-            st.session_state.my_list = [line for line in data if st.session_state.category_out in line.lower()]
+            st.session_state.my_list = [
+                row for row in rows
+                if row[9].strip().lower() == st.session_state.category_out.lower()
+            ]
         else:
-            st.session_state.my_list = data
+            st.session_state.my_list = rows
 
         random.shuffle(st.session_state.my_list)
         st.session_state.stage = "quiz_time"
@@ -92,10 +96,11 @@ elif st.session_state.stage == "quiz_time":
         st.session_state.stage = "show_result"
         st.rerun()
 
-    row = next(csv.reader([st.session_state.my_list[st.session_state.current_index]]))
+    row = st.session_state.my_list[st.session_state.current_index]
 
     while len(row) < 10:
         row.append('Sorry! Right now we have not added explanation.')
+
     id, question, op1, op2, op3, op4, answer, type_, exp, category = row
 
     st.subheader(f"Q{st.session_state.current_index+1}: {question}")
