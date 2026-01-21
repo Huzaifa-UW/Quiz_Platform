@@ -102,9 +102,18 @@ elif st.session_state.stage == "quiz_time":
 
     row = next(csv.reader([st.session_state.my_list[st.session_state.current_index]]))
 
-    while len(row) < 10:
-        row.append('Sorry! Right now we have not added explanation.')
-    id, question, op1, op2, op3, op4, answer, type_, exp, category = row
+    # FIX: Only fill missing columns AFTER we've extracted the answer
+    # First ensure we have at least 7 columns (up to answer)
+    while len(row) < 7:
+        row.append('')
+    
+    # Now extract the first 7 columns
+    id, question, op1, op2, op3, op4, answer = row[:7]
+    
+    # Fill remaining columns if needed
+    type_ = row[7] if len(row) > 7 else ''
+    exp = row[8] if len(row) > 8 else 'Sorry! Right now we have not added explanation.'
+    category = row[9] if len(row) > 9 else 'unknown'
 
     st.subheader(f"Q{st.session_state.current_index+1}: {question}")
 
