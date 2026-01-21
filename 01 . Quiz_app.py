@@ -3,17 +3,10 @@ import csv
 import random
 import requests
 import io
-
-@st.cache_data
-def load_csv_from_drive():
-    url = "https://drive.google.com/uc?id=1AsnDikQZdkbn1O03pk6BBRRMGHP0U73S"
-    response = requests.get(url)
-    response.raise_for_status()
-    return response.text.splitlines()
-
+import pandas as pd
 
 # variable to store or hold date 
-# Data will come thorugh different loops here to store it and use it for later maybe in results
+# Data will come through different loops here to store it and use it for later maybe in results
 
 if not all(k in st.session_state for k in ["stage","category_out","my_list","number_of_mcqs","current_index","correct","wrong","wrong_input","locked"]):
     st.session_state.stage = st.session_state.get("stage","choose_subject")
@@ -70,38 +63,44 @@ elif st.session_state.stage == "choose_number":
     num = st.number_input("How many questions would you like to attempt?", 1, 50, 5)
     if st.button("Start Quiz"):
         st.session_state.number_of_mcqs = num
-
-        lines = load_csv_from_drive()
-        data = [line.strip() for line in lines[1:] if line.strip()]  # skip header
-
-        if st.session_state.category_out:
-            st.session_state.my_list = [line for line in data if st.session_state.category_out in line.lower()]
-        else:
-            st.session_state.my_list = data
         
-        # Check if we have enough questions after filtering
-        if len(st.session_state.my_list) == 0:
-            if st.session_state.category_out:
-                st.error(f"No questions found for subject: {st.session_state.category_out}. Please go back and choose a different subject.")
-            else:
-                st.error("No questions found in the database. Please check the data source.")
-        else:
-            if num > len(st.session_state.my_list):
-                st.warning(f"⚠️ Only {len(st.session_state.my_list)} questions available. Adjusting to show all available questions.")
-                st.session_state.number_of_mcqs = len(st.session_state.my_list)
+        try:
+            # Try to load the CSV file
+            # This file needs to be in the same directory as your script
+            # For Streamlit Cloud, you need to upload train.csv to your repository
+            with open("train.csv", encoding="utf-8") as f:
+                next(f)  # Skip header
+                data = [line.strip() for line in f if line.strip()]
             
-            random.shuffle(st.session_state.my_list)
-            st.session_state.stage = "quiz_time"
-            st.rerun()
+            if st.session_state.category_out:
+                st.session_state.my_list = [line for line in data if st.session_state.category_out in line.lower()]
+            else:
+                st.session_state.my_list = data
+            
+            if len(st.session_state.my_list) == 0:
+                if st.session_state.category_out:
+                    st.error(f"No questions found for subject: {st.session_state.category_out}. Please go back and choose a different subject.")
+                else:
+                    st.error("No questions found. Please check if train.csv file exists and has data.")
+            else:
+                if num > len(st.session_state.my_list):
+                    st.warning(f"⚠️ Only {len(st.session_state.my_list)} questions available. Adjusting to show all available questions.")
+                    st.session_state.number_of_mcqs = len(st.session_state.my_list)
+                
+                random.shuffle(st.session_state.my_list)
+                st.session_state.stage = "quiz_time"
+                st.rerun()
+                
+        except FileNotFoundError:
+            st.error("❌ 'train.csv' file not found. Please make sure the file exists in the same directory.")
+            st.info("For Streamlit Cloud deployment, upload your train.csv file to your GitHub repository.")
+        except Exception as e:
+            st.error(f"❌ An error occurred: {str(e)}")
 
 elif st.session_state.stage == "quiz_time":
     # Check if we have any questions to show
     if len(st.session_state.my_list) == 0:
-        if st.session_state.category_out:
-            st.error("❌ No questions found with the selected filter. Please restart and choose a different subject.")
-        else:
-            st.error("❌ No questions found in the database. Please check the data source.")
-            
+        st.error("❌ No questions available. Please restart the quiz.")
         if st.button("🔄 Restart Quiz"):
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
