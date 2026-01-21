@@ -81,7 +81,10 @@ elif st.session_state.stage == "choose_number":
         
         # Check if we have enough questions after filtering
         if len(st.session_state.my_list) == 0:
-            st.error(f"No questions found for subject: {st.session_state.category_out}. Please go back and choose a different subject.")
+            if st.session_state.category_out:
+                st.error(f"No questions found for subject: {st.session_state.category_out}. Please go back and choose a different subject.")
+            else:
+                st.error("No questions found in the database. Please check the data source.")
         else:
             if num > len(st.session_state.my_list):
                 st.warning(f"⚠️ Only {len(st.session_state.my_list)} questions available. Adjusting to show all available questions.")
@@ -94,7 +97,11 @@ elif st.session_state.stage == "choose_number":
 elif st.session_state.stage == "quiz_time":
     # Check if we have any questions to show
     if len(st.session_state.my_list) == 0:
-        st.error("❌ No questions found with the selected filter. Please restart and choose a different subject.")
+        if st.session_state.category_out:
+            st.error("❌ No questions found with the selected filter. Please restart and choose a different subject.")
+        else:
+            st.error("❌ No questions found in the database. Please check the data source.")
+            
         if st.button("🔄 Restart Quiz"):
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
